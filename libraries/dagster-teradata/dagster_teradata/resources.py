@@ -17,7 +17,6 @@ from dagster._utils.cached_method import cached_method
 from pydantic import Field
 
 from dagster_teradata import constants
-from dagster_teradata.ttu import Bteq
 from dagster_teradata.teradata_compute_cluster_manager import (
     TeradataComputeClusterManager,
 )
@@ -35,11 +34,6 @@ class TeradataResource(ConfigurableResource, IAttachDifferentObjectToOpContext):
     browser: Optional[str] = None
     browser_tab_timeout: Optional[int] = None
     browser_timeout: Optional[int] = None
-    console_output_encoding: Optional[str] = Field(default="utf-8", description="Console output encoding.")
-    bteq_session_encoding: Optional[str] = Field(default="ASCII", description="BTEQ session encoding.")
-    bteq_output_width: Optional[int] = Field(default=65531, description="BTEQ output width.")
-    bteq_quit_zero: Optional[bool] = Field(default=False, description="BTEQ quit zero flag.")
-
 
     @property
     @cached_method
@@ -123,7 +117,6 @@ class TeradataDagsterConnection:
     ):
         self.teradata_connection_resource = teradata_connection_resource
         self.compute_cluster_manager = TeradataComputeClusterManager(self, log)
-        self.bteq = Bteq(self, teradata_connection_resource, log)
         self.log = log
 
     @public
@@ -218,22 +211,6 @@ class TeradataDagsterConnection:
                     if fetch_results:
                         results = results.append(cursor.fetchall())  # type: ignore
                         return results
-
-    def execute_bteq_script(self, bteq_script: str) -> None:
-        """Executes BTEQ sentences using BTEQ binary.
-
-        Args:
-            bteq_script (str): String of BTEQ sentences to be executed.
-
-        Examples:
-            .. code-block:: python
-
-                @op
-                def execute_bteq(teradata: TeradataResource):
-                    bteq = "SELECT * FROM dbc.dbcinfo"
-                    teradata.execute_bteq(bteq)
-        """
-        self.bteq.execute_bteq(bteq_script)
 
     def drop_database(self, databases: Union[str, Sequence[str]]) -> None:
         """
