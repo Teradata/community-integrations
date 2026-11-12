@@ -1,0 +1,40 @@
+# Snyk (https://snyk.io) policy file
+# Scope scanning to libraries/dagster-teradata only.
+# Every other directory is excluded explicitly (plain patterns, no negation).
+# Add exclusions here when new non-Teradata integrations or directories are added.
+exclude:
+  global:
+    - .claude/**
+    - .github/**
+    - libraries/_template/**
+    - libraries/dagster-adbc/**
+    - libraries/dagster-anthropic/**
+    - libraries/dagster-apprise/**
+    - libraries/dagster-async-executor/**
+    - libraries/dagster-chroma/**
+    - libraries/dagster-contrib-gcp/**
+    - libraries/dagster-dataform/**
+    - libraries/dagster-ducklake/**
+    - libraries/dagster-elasticsearch/**
+    - libraries/dagster-evidence/**
+    - libraries/dagster-gemini/**
+    - libraries/dagster-hex/**
+    - libraries/dagster-hf-datasets/**
+    - libraries/dagster-iceberg/**
+    - libraries/dagster-modal/**
+    - libraries/dagster-notdiamond/**
+    - libraries/dagster-obstore/**
+    - libraries/dagster-openlineage/**
+    - libraries/dagster-polars/**
+    - libraries/dagster-qdrant/**
+    - libraries/dagster-salesforce/**
+    - libraries/dagster-sftp/**
+    - libraries/dagster-sharepoint/**
+    - libraries/dagster-vertexai/**
+    - libraries/dagster-weaviate/**
+    - libraries/dagster-xquik/**
+    - libraries/pipes/**
+    - .pre-commit-config.yaml
+    - Makefile
+    - pyproject.toml
+    - release.sh
