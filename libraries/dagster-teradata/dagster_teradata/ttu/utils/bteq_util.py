@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import shlex
 import shutil
 import stat
 from typing import TYPE_CHECKING
@@ -126,7 +125,11 @@ def prepare_bteq_script_for_remote_execution(
         The .LOGON command is included in the script for remote execution to avoid
         exposing credentials in command line arguments.
     """
-    script_lines = [prepare_bteq_logon(teradata_connection_resource)]
+    script_lines = []
+    host = teradata_connection_resource.host
+    login = teradata_connection_resource.user
+    password = teradata_connection_resource.password
+    script_lines.append(f".LOGON {host}/{login},{password}")
     return _prepare_bteq_script(script_lines, sql)
 
 
@@ -141,8 +144,8 @@ def prepare_bteq_script_for_local_execution(sql: str) -> str:
         str: Complete BTEQ script including SQL commands.
 
     Note:
-        For local execution, the .LOGON command is written to BTEQ's stdin ahead
-        of this script when it runs, so it is not part of the logged script.
+        For local execution, connection details are typically passed as command line
+        arguments rather than in the script.
     """
     script_lines: list[str] = []
     return _prepare_bteq_script(script_lines, sql)
@@ -171,7 +174,7 @@ def _prepare_bteq_command(
     timeout_rc: int,
 ) -> list[str]:
     """
-    Prepare the BTEQ argument list with common parameters.
+    Prepare the core BTEQ command with common parameters.
 
     Args:
         timeout (int): Maximum execution time in seconds before timeout.
@@ -180,19 +183,19 @@ def _prepare_bteq_command(
         timeout_rc (int): Return code to use when timeout occurs.
 
     Returns:
-        list[str]: The BTEQ argv; the last element holds the BTEQ commands run
-        before the script read from stdin.
+        list[str]: List of command components that can be joined into a full command.
     """
     bteq_core_cmd = ["bteq"]
     if bteq_session_encoding:
-        bteq_core_cmd.extend(["-e", bteq_script_encoding])
-        bteq_core_cmd.extend(["-c", bteq_session_encoding])
-    set_commands = f" .SET EXITONDELAY ON MAXREQTIME {timeout}"
+        bteq_core_cmd.append(f" -e {bteq_script_encoding}")
+        bteq_core_cmd.append(f" -c {bteq_session_encoding}")
+    bteq_core_cmd.append('"')
+    bteq_core_cmd.append(f".SET EXITONDELAY ON MAXREQTIME {timeout}")
     if timeout_rc is not None and timeout_rc >= 0:
-        set_commands += f"  RC {timeout_rc}"
+        bteq_core_cmd.append(f" RC {timeout_rc}")
+    bteq_core_cmd.append(";")
     # Dagster doesn't display the script of BTEQ in UI but only in log so WIDTH is 500 enough
-    set_commands += " ;  .SET WIDTH 500; "
-    bteq_core_cmd.append(set_commands)
+    bteq_core_cmd.append(" .SET WIDTH 500;")
     return bteq_core_cmd
 
 
@@ -212,56 +215,45 @@ def prepare_bteq_command_for_remote_execution(
         timeout_rc (int): Return code to use when timeout occurs.
 
     Returns:
-        str: BTEQ command line, quoted for a POSIX shell on the remote host.
+        str: Complete BTEQ command string for remote execution.
     """
-    return shlex.join(
-        _prepare_bteq_command(
-            timeout or 600, bteq_script_encoding, bteq_session_encoding, timeout_rc
-        )
+    bteq_core_cmd = _prepare_bteq_command(
+        timeout or 600, bteq_script_encoding, bteq_session_encoding, timeout_rc
     )
+    bteq_core_cmd.append('"')
+    return " ".join(bteq_core_cmd)
 
 
 def prepare_bteq_command_for_local_execution(
+    teradata_connection_resource,
     timeout: int | None,  # or: timeout: int | None
     bteq_script_encoding: str,
     bteq_session_encoding: str,
     timeout_rc: int,
-) -> list[str]:
+) -> str:
     """
-    Prepare the BTEQ argument list for local execution.
-
-    The .LOGON command is not part of it: credentials go to BTEQ on stdin
-    (see prepare_bteq_logon) so they never appear in the process list.
+    Prepare the BTEQ command string for local execution.
 
     Args:
+        teradata_connection_resource: Resource containing Teradata connection details.
         timeout (int): Maximum execution time in seconds before timeout.
         bteq_script_encoding (str): Character encoding for the script file.
         bteq_session_encoding (str): Character encoding for the session.
         timeout_rc (int): Return code to use when timeout occurs.
 
     Returns:
-        list[str]: BTEQ argv to run without a shell.
+        str: Complete BTEQ command string for local execution including login details.
     """
-    return _prepare_bteq_command(
+    bteq_core_cmd = _prepare_bteq_command(
         timeout or 600, bteq_script_encoding, bteq_session_encoding, timeout_rc
     )
-
-
-def prepare_bteq_logon(teradata_connection_resource) -> str:
-    """
-    Build the BTEQ .LOGON command for the given connection resource.
-
-    Args:
-        teradata_connection_resource: Resource containing Teradata connection details
-                                      (host, user, password).
-
-    Returns:
-        str: The .LOGON command line.
-    """
     host = teradata_connection_resource.host
     login = teradata_connection_resource.user
     password = teradata_connection_resource.password
-    return f".LOGON {host}/{login},{password}"
+    bteq_core_cmd.append(f" .LOGON {host}/{login},{password}")
+    bteq_core_cmd.append('"')
+    bteq_command_str = " ".join(bteq_core_cmd)
+    return bteq_command_str
 
 
 def is_valid_file(file_path: str) -> bool:

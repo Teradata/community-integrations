@@ -3,8 +3,8 @@
 A dagster module that provides integration with [Teradata Vantage](https://www.teradata.com/).
 
 ## Installation
-The `dagster_teradata` module is available as a PyPI package - install with your preferred python
-environment manager.
+The `dagster_teradata` module is available as a PyPI package. It requires **Python 3.10 or newer**.
+Install it with your preferred Python environment manager.
 
 ```
 source .venv/bin/activate
@@ -122,14 +122,6 @@ def test_create_teradata_compute_cluster(tmp_path):
         }
     )
 ```
-## SSH Host Key Verification
-
-The BTEQ, DDL, and TdLoad operators verify the remote host's SSH key before they send credentials or scripts. They accept a host only if its key is in `/etc/ssh/ssh_known_hosts`, `~/.ssh/known_hosts`, or the file passed as `ssh_known_hosts_path`. An unknown host fails with a `DagsterError` that names the host and its key fingerprint.
-
-Earlier releases accepted any host key. After upgrading, remote execution against a host that is in none of those files fails until you trust the host in one of the ways below.
-
-To trust a new host, confirm its fingerprint with the host's administrator and add its key to `~/.ssh/known_hosts` (for example with `ssh-keyscan -p <port> <host>`), or pass a known_hosts file with `ssh_known_hosts_path`. There is no way to skip host key verification.
-
 ## BTEQ Operator
 
 The bteq_operator method enables execution of SQL statements or BTEQ (Basic Teradata Query) scripts using the Teradata BTEQ utility. 
@@ -159,7 +151,6 @@ It supports running commands either on the local machine or on a remote machine 
 - `remote_password`: Password for SSH authentication. Optional, and used as an alternative to `ssh_key_path`.  
 - `ssh_key_path`: Path to the SSH private key used for authentication. Optional, and used as an alternative to `remote_password`.  
 - `remote_port`: SSH port number for the remote host. Defaults to `22` if not specified. *(optional)*
-- `ssh_known_hosts_path`: Extra known_hosts file used to verify the remote host key. See [SSH Host Key Verification](#ssh-host-key-verification). *(optional)*
 - `remote_working_dir`: Temporary directory location on the remote host (via SSH) where the BTEQ script will be transferred and executed. Defaults to `/tmp` if not specified. This is only applicable when `ssh_conn_id` is provided.
 - `bteq_script_encoding`: Character encoding for the BTEQ script file. Defaults to ASCII if not specified.
 - `bteq_session_encoding`: Character set encoding for the BTEQ session. Defaults to ASCII if not specified.
@@ -231,7 +222,6 @@ It supports both local and remote execution (via SSH), allowing you to manage Te
 | `remote_password` | `str` | Password for SSH authentication. Used as an alternative to `ssh_key_path`. | ❌ | — |
 | `ssh_key_path` | `str` | Path to the SSH private key file used for authentication. Used as an alternative to `remote_password`. | ❌ | — |
 | `remote_port` | `int` | SSH port for the remote host. Must be within range `1–65535`. | ❌ | `22` |
-| `ssh_known_hosts_path` | `str` | Extra known_hosts file used to verify the remote host key. See [SSH Host Key Verification](#ssh-host-key-verification). | ❌ | — |
 
 ### Returns
 
@@ -352,7 +342,6 @@ It provides a unified interface to run **TDLoad** operations either **locally** 
 | `remote_password` | `str` | Password for SSH authentication. Alternative to `ssh_key_path`. | ❌ | — |
 | `ssh_key_path` | `str` | Path to SSH private key used for authentication. Alternative to `remote_password`. | ❌ | — |
 | `remote_port` | `int` | SSH port for the remote connection (1–65535). | ❌ | `22` |
-| `ssh_known_hosts_path` | `str` | Extra known_hosts file used to verify the remote host key. See [SSH Host Key Verification](#ssh-host-key-verification). | ❌ | — |
 
 
 ### Return Value
